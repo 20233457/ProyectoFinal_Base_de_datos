@@ -9,6 +9,7 @@ const createToken = (id) => {
 };
 
 router.post("/register", async (req, res) => {
+  console.log('>>>Llego a /api/auth/register', req.body);
   try {
     const { username, email, phone, password } = req.body;
 
