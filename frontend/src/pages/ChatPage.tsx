@@ -42,21 +42,31 @@ const ChatPage = () => {
   useEffect(() => {
     if (!socket) return;
 
-    const handleNewMessage = (data: any) => {
-      if (!selectedChat || data.chatID !== selectedChat._id) return;
-      const msg: Message = {
-        _id: data._id,
-        chatID: data.chatID,
-        senderID: data.senderID,
-        text: data.text,
-        type: data.type,
-        mediaUrl: data.mediaUrl,
-        mediaType: data.mediaType,
-        mediaSize: data.mediaSize,
-        createdAt: data.createdAt,
-      };
-      setMessages((prev) => [...prev, msg]);
-    };
+ const handleNewMessage = (data: any) => {
+  if (!selectedChat || data.chatID !== selectedChat._id) return;
+
+  // El backend SIEMPRE envía:
+  // senderID = ID real del usuario
+  // senderUsername = username real
+  const realSenderId = data.senderID;
+
+  const msg: Message = {
+    _id: data._id,
+    chatID: data.chatID,
+    senderID: realSenderId, // <-- CORREGIDO
+    text: data.text,
+    type: data.type,
+    mediaUrl: data.mediaUrl,
+    mediaType: data.mediaType,
+    mediaSize: data.mediaSize,
+    createdAt: data.createdAt,
+    senderUsername: data.senderUsername, // <-- Para mostrar nombre
+    readBy: data.readBy || [],
+  };
+
+  setMessages((prev) => [...prev, msg]);
+};
+
 
     const handleTyping = (payload: any) => {
       if (!selectedChat || payload.chatID !== selectedChat._id) return;

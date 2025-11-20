@@ -26,6 +26,7 @@ export interface Message {
   mediaSize?: number;
   createdAt?: string;
   timestamp?: number;
+  senderUsername?: string;
 
    readBy?: string[];
 }
