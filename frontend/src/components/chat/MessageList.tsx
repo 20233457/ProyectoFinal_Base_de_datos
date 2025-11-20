@@ -23,7 +23,7 @@ const MessageList = ({ messages, otherUserId }: Props) => {
       }}
     >
       {messages.map((msg) => {
-        const isMe = msg.senderID === user?.username;
+        const isMe = msg.senderID === user?.id;
         // Tus mensajes a la IZQUIERDA, otros a la DERECHA (como lo tenías)
         const align = isMe ? "flex-start" : "flex-end";
         const bg = isMe ? "rgba(59,130,246,0.25)" : "rgba(15,23,42,0.9)";
