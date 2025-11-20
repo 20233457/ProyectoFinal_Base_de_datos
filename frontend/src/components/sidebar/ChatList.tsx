@@ -1,5 +1,4 @@
 import { useAuth } from "../../state/AuthContext";
-
 import { ChatSummary } from "../../types/chat";
 import Avatar from "../ui/Avatar";
 import Tag from "../ui/Tag";
@@ -12,6 +11,7 @@ interface Props {
 
 const ChatList = ({ chats, selectedChatId, onSelect }: Props) => {
   const { user } = useAuth();
+
   return (
     <div
       style={{
@@ -21,16 +21,16 @@ const ChatList = ({ chats, selectedChatId, onSelect }: Props) => {
       }}
     >
       {chats.map((chat) => {
-// Para chats individuales, buscamos al OTRO usuario
-let other =
-  chat.isGroup || !user
-    ? null
-    : chat.participants.find((p) => p._id !== user.id) || chat.participants[0];
+        // Para chats individuales, buscamos al OTRO usuario
+        const other =
+          chat.isGroup || !user
+            ? null
+            : chat.participants.find((p) => p._id !== user.id) ||
+              chat.participants[0];
 
-const title = chat.isGroup
-  ? chat.name || "Grupo"
-  : other?.username || "Chat";
-
+        const title = chat.isGroup
+          ? chat.name || "Grupo"
+          : other?.username || "Chat";
 
         const isSelected = selectedChatId === chat._id;
 
@@ -65,12 +65,14 @@ const title = chat.isGroup
                 minWidth: 0,
               }}
             >
+              {/* Fila superior: título + grupo + mensajes no leídos */}
               <div
                 style={{
                   display: "flex",
                   justifyContent: "space-between",
                   fontSize: 13,
                   marginBottom: 2,
+                  alignItems: "center",
                 }}
               >
                 <span
@@ -83,8 +85,36 @@ const title = chat.isGroup
                 >
                   {title}
                 </span>
-                {chat.isGroup && <Tag>Grupo</Tag>}
+
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 4,
+                    marginLeft: 8,
+                  }}
+                >
+                  {chat.isGroup && <Tag>Grupo</Tag>}
+
+                  {chat.unreadCount && chat.unreadCount > 0 && (
+                    <span
+                      style={{
+                        minWidth: 18,
+                        padding: "2px 6px",
+                        borderRadius: 999,
+                        backgroundColor: "#1d9bf0",
+                        color: "white",
+                        fontSize: 11,
+                        textAlign: "center",
+                      }}
+                    >
+                      {chat.unreadCount}
+                    </span>
+                  )}
+                </div>
               </div>
+
+              {/* Último mensaje */}
               <div
                 style={{
                   fontSize: 11,

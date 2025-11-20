@@ -5,11 +5,15 @@ export interface ChatSummary {
   participants: { _id: string; username: string; status?: string }[];
   lastMessage?: {
     _id: string;
-    text?: string;
+    text: string;
     type: "text" | "media";
+    senderID: string;
     createdAt: string;
-  } | null;
+  };
+  // 👇 NUEVO
+  unreadCount?: number;
 }
+
 
 export interface Message {
   _id?: string;
@@ -22,4 +26,6 @@ export interface Message {
   mediaSize?: number;
   createdAt?: string;
   timestamp?: number;
+
+   readBy?: string[];
 }

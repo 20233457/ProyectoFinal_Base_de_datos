@@ -25,6 +25,7 @@ const ChatPage = () => {
 
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
 
+  // 1) Cargar lista de chats al entrar
   useEffect(() => {
     const loadChats = async () => {
       try {
@@ -37,6 +38,7 @@ const ChatPage = () => {
     if (token) loadChats();
   }, [token]);
 
+  // 2) Escuchar mensajes nuevos y "typing" del chat actual
   useEffect(() => {
     if (!socket) return;
 
@@ -79,8 +81,77 @@ const ChatPage = () => {
     };
   }, [socket, selectedChat]);
 
+  // 3) Escuchar "chat_updated" para:
+  //    - crear chats nuevos en la lista izq
+  //    - actualizar último mensaje
+  //    - subir contador de no leídos si no está abierto
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleChatUpdated = ({
+      chat,
+      fromUserId,
+    }: {
+      chat: ChatSummary;
+      fromUserId: string;
+    }) => {
+      setChats((prev) => {
+        const existing = prev.find((c) => c._id === chat._id);
+
+        // Si ya existe el chat en la lista, actualizamos lastMessage y unreadCount
+        if (existing) {
+          const isActive = selectedChat?._id === chat._id;
+
+          const updated = prev.map((c) =>
+            c._id === chat._id
+              ? {
+                  ...c,
+                  ...chat,
+                  unreadCount: isActive ? 0 : (c.unreadCount || 0) + 1,
+                }
+              : c
+          );
+
+          // ordenar por último mensaje (más reciente arriba)
+          return [...updated].sort((a, b) =>
+            (b.lastMessage?.createdAt || "").localeCompare(
+              a.lastMessage?.createdAt || ""
+            )
+          );
+        }
+
+        // Si es un chat NUEVO para este usuario
+        const newChat: ChatSummary = {
+          ...chat,
+          unreadCount: 1,
+        };
+
+        return [newChat, ...prev];
+      });
+    };
+
+    socket.on("chat_updated", handleChatUpdated);
+
+    return () => {
+      socket.off("chat_updated", handleChatUpdated);
+    };
+  }, [socket, selectedChat]);
+
+  // 4) Abrir un chat:
+  //    - seleccionarlo
+  //    - limpiar contador de no leídos
+  //    - unirse al room socket
+  //    - cargar mensajes desde el backend
   const openChat = async (chat: ChatSummary) => {
     setSelectedChat(chat);
+
+    // marcar como leído en la lista
+    setChats((prev) =>
+      prev.map((c) =>
+        c._id === chat._id ? { ...c, unreadCount: 0 } : c
+      )
+    );
+
     setMessages([]);
     socket?.emit("join_chat", chat._id);
 
@@ -98,11 +169,20 @@ const ChatPage = () => {
         createdAt: m.createdAt,
       }));
       setMessages(msgs);
+
+          if (socket && msgs.length > 0) {
+      const lastMessageId = msgs[msgs.length - 1].  _id;
+       socket.emit("messages_read", {
+          chatID: chat._id,
+          lastMessageId,
+        });
+      }
     } catch (error) {
       console.error(error);
     }
   };
 
+  // 5) Buscar usuarios para iniciar chat
   const handleSearch = async () => {
     if (!search.trim()) {
       setSearchResults([]);
@@ -123,17 +203,20 @@ const ChatPage = () => {
     }
   };
 
+  // 6) Crear o recuperar chat 1 a 1 con un usuario
   const handleStartChat = async (other: User) => {
     try {
       const res = await api.post("/chats/create-or-get", {
         otherUserId: other.id,
       });
       const chat: ChatSummary = res.data;
+
       setChats((prev) => {
         const exists = prev.find((c) => c._id === chat._id);
         if (exists) return prev;
         return [chat, ...prev];
       });
+
       setSearch("");
       setSearchResults([]);
       openChat(chat);
@@ -142,12 +225,14 @@ const ChatPage = () => {
     }
   };
 
+  // 7) Enviar mensaje de texto
   const handleSendText = (text: string) => {
     if (!selectedChat || !socket) return;
     // Solo enviamos al servidor; el mensaje se agregará cuando llegue "new_message".
     socket.emit("send_message", { chatID: selectedChat._id, text });
   };
 
+  // 8) Enviar archivo (multimedia)
   const handleSendFile = async (file: File) => {
     if (!selectedChat) return;
     if (file.size > 100 * 1024 * 1024) {
@@ -172,6 +257,7 @@ const ChatPage = () => {
     }
   };
 
+  // 9) Indicador "escribiendo..."
   const handleTypingChange = (isTyping: boolean) => {
     if (!socket || !selectedChat) return;
     socket.emit("typing", { chatID: selectedChat._id, isTyping });
